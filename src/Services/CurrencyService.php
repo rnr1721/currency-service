@@ -16,6 +16,7 @@ use rnr1721\CurrencyService\DTO\FormatSettingsDTO;
 use rnr1721\CurrencyService\Exceptions\CurrencyNotFoundException;
 use rnr1721\CurrencyService\Exceptions\NoCurrencyException;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use InvalidArgumentException;
 
 /**
  * Main service for managing currencies and their rates.
@@ -53,6 +54,8 @@ class CurrencyService implements CurrencyServiceInterface
      * @param string $to|null Target currency code (uses default currency if null).
      * @param ConversionSettingsDTO|null $settings Optional conversion settings (e.g., rounding).
      * @return float The converted amount.
+     * @throws CurrencyNotFoundException When from or to currency not found
+     * @throws InvalidArgumentException When amount is negative
      */
     public function convert(
         float $amount,
@@ -60,7 +63,21 @@ class CurrencyService implements CurrencyServiceInterface
         ?string $to = null,
         ?ConversionSettingsDTO $settings = null
     ): float {
+
+        if ($amount < 0) {
+            throw new InvalidArgumentException("Amount cannot be negative");
+        }
+
+        if (!$this->repository->findByCode($from)) {
+            throw new CurrencyNotFoundException("Source currency not found: {$from}");
+        }
+
         $targetCurrency = $to ?? $this->getDefaultCurrency()->code;
+
+        if (!$this->repository->findByCode($targetCurrency)) {
+            throw new CurrencyNotFoundException("Target currency not found: {$targetCurrency}");
+        }
+
         $settings = $this->validateAndGetSettings($settings);
 
         /** @var 1|2|3|4 $mode */
@@ -239,13 +256,21 @@ class CurrencyService implements CurrencyServiceInterface
         $rates = $this->provider->getRates($defaultCurrency->code);
         $timestamp = new \DateTime();
 
+        // Получаем все доступные валюты
+        $availableCurrencies = array_map(
+            fn ($curr) => $curr->code,
+            $this->getAllCurrencies()
+        );
+
         foreach ($rates as $currencyCode => $rate) {
-            $this->repository->saveRate(new CurrencyRateDTO(
-                fromCurrency: $defaultCurrency->code,
-                toCurrency: $currencyCode,
-                rate: $rate,
-                updatedAt: $timestamp
-            ));
+            if (in_array($currencyCode, $availableCurrencies, true)) {
+                $this->repository->saveRate(new CurrencyRateDTO(
+                    fromCurrency: $defaultCurrency->code,
+                    toCurrency: $currencyCode,
+                    rate: $rate,
+                    updatedAt: $timestamp
+                ));
+            }
         }
         /** @phpstan-ignore-next-line */
         $this->getCacheStore()->flush();

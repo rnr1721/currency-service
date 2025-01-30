@@ -10,7 +10,10 @@ use rnr1721\CurrencyService\Models\Currency;
 use rnr1721\CurrencyService\Models\CurrencyRate;
 use rnr1721\CurrencyService\Exceptions\CurrencyRateNotFoundException;
 use rnr1721\CurrencyService\Exceptions\NoCurrencyException;
+use rnr1721\CurrencyService\Exceptions\CurrencyNotFoundException;
 use DateTime;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Repository for managing currencies and their rates.
@@ -88,26 +91,20 @@ class CurrencyRepository implements CurrencyRepositoryInterface
      */
     public function getAllWithLatestRates(): array
     {
-        $currencies = $this->getAll();
         $defaultCurrency = $this->findDefaultCurrency();
-
         if (!$defaultCurrency) {
             throw new NoCurrencyException('No default currency set');
         }
 
-        // Filter out the default currency
-        $currencies = array_filter($currencies, fn ($currency) => $currency->code !== $defaultCurrency->code);
+        $currencies = Currency::where('is_default', false)->get();
 
-        return array_map(fn ($currency) => new CurrencyWithLatestRateDTO(
+        return $currencies->map(fn ($currency) => new CurrencyWithLatestRateDTO(
             code: $currency->code,
             name: $currency->name,
-            isDefault: $currency->isDefault,
-            latestRate: $currency->code === $defaultCurrency->code
-                ? 1.0
-                : $this->getLatestRate($currency->code, $defaultCurrency->code)->rate
-        ), $currencies);
+            isDefault: false,
+            latestRate: $this->getLatestRate($currency->code, $defaultCurrency->code)->rate
+        ))->toArray();
     }
-
 
     /**
      * Save or update a currency.
@@ -117,19 +114,19 @@ class CurrencyRepository implements CurrencyRepositoryInterface
      */
     public function save(CurrencyDTO $currency): void
     {
+        DB::transaction(function () use ($currency) {
+            if ($currency->isDefault) {
+                Currency::where('is_default', true)->update(['is_default' => false]);
+            }
 
-        if ($currency->isDefault) {
-            // Reset default flag in all currencies
-            Currency::where('is_default', true)->update(['is_default' => false]);
-        }
-
-        Currency::updateOrCreate(
-            ['code' => $currency->code],
-            [
-                'name' => $currency->name,
-                'is_default' => $currency->isDefault,
-            ]
-        );
+            Currency::updateOrCreate(
+                ['code' => $currency->code],
+                [
+                    'name' => $currency->name,
+                    'is_default' => $currency->isDefault,
+                ]
+            );
+        });
     }
 
     /**
@@ -149,9 +146,23 @@ class CurrencyRepository implements CurrencyRepositoryInterface
      *
      * @param CurrencyRateDTO $rate The exchange rate data to save.
      * @return void
+     * @throws InvalidArgumentException When rate less or equal 0
+     * @throws CurrencyNotFoundException One or both currencies not found.
      */
     public function saveRate(CurrencyRateDTO $rate): void
     {
+
+        if ($rate->rate <= 0) {
+            throw new \InvalidArgumentException("Rate must be positive.");
+        }
+
+        $fromCurrency = Currency::where('code', $rate->fromCurrency)->first();
+        $toCurrency = Currency::where('code', $rate->toCurrency)->first();
+
+        if (!$fromCurrency || !$toCurrency) {
+            throw new CurrencyNotFoundException("One or both currencies not found.");
+        }
+
         CurrencyRate::create([
             'from_currency' => $rate->fromCurrency,
             'to_currency' => $rate->toCurrency,
@@ -285,6 +296,7 @@ class CurrencyRepository implements CurrencyRepositoryInterface
      * @param string $code The currency code to delete.
      * @return void
      * @throws CurrencyRateNotFoundException If no currency with the given code is found.
+     * @throws InvalidArgumentException If it is a default currency
      */
     public function deleteCurrency(string $code): void
     {
@@ -294,11 +306,37 @@ class CurrencyRepository implements CurrencyRepositoryInterface
             throw new CurrencyRateNotFoundException("Currency with code {$code} not found.");
         }
 
-        // Delete the associated exchange rates
-        CurrencyRate::where('from_currency', $code)
-            ->orWhere('to_currency', $code)
-            ->delete();
+        if ($currency->is_default) {
+            throw new \InvalidArgumentException("Cannot delete default currency.");
+        }
 
-        $currency->delete();
+        DB::transaction(function () use ($currency, $code) {
+            CurrencyRate::where('from_currency', $code)
+                ->orWhere('to_currency', $code)
+                ->delete();
+
+            $currency->delete();
+        });
+    }
+
+    /**
+     * Save multiple currency exchange rates in a single transaction.
+     *
+     * This method saves multiple rates atomically, ensuring that either all rates
+     * are saved successfully or none of them are saved if an error occurs.
+     *
+     * @param CurrencyRateDTO[] $rates An array of currency rate DTOs to be saved
+     * @return void
+     * @throws InvalidArgumentException When any rate is less than or equal to 0
+     * @throws CurrencyNotFoundException When any referenced currency is not found
+     * @throws \Throwable If the transaction fails for any reason
+     */
+    public function saveRates(array $rates): void
+    {
+        DB::transaction(function () use ($rates) {
+            foreach ($rates as $rate) {
+                $this->saveRate($rate);
+            }
+        });
     }
 }

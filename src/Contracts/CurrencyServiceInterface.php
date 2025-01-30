@@ -12,6 +12,7 @@ use rnr1721\CurrencyService\Exceptions\NoCurrencyException;
 use rnr1721\CurrencyService\Exceptions\CurrencyNotFoundException;
 use rnr1721\CurrencyService\Exceptions\CurrencyRateNotFoundException;
 use DateTimeInterface;
+use InvalidArgumentException;
 
 /**
 * Main interface for currency operations
@@ -57,6 +58,7 @@ interface CurrencyServiceInterface
      * @return float The converted amount
      * @throws CurrencyNotFoundException If either currency does not exist
      * @throws CurrencyRateNotFoundException If no exchange rate is available
+     * @throws InvalidArgumentException When amount is negative
      */
     public function convert(
         float $amount,

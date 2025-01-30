@@ -8,6 +8,7 @@ use rnr1721\CurrencyService\DTO\CurrencyRateDTO;
 use rnr1721\CurrencyService\Exceptions\CurrencyNotFoundException;
 use rnr1721\CurrencyService\Exceptions\CurrencyRateNotFoundException;
 use rnr1721\CurrencyService\Exceptions\NoCurrencyException;
+use InvalidArgumentException;
 
 /**
  * Interface for currency data persistence
@@ -59,8 +60,9 @@ interface CurrencyRepositoryInterface
      * This creates a historical record of the rate.
      *
      * @param CurrencyRateDTO $rate The exchange rate data to save
-     * @throws CurrencyNotFoundException If either the source or target currency does not exist
      * @return void
+     * @throws InvalidArgumentException When rate less or equal 0
+     * @throws CurrencyNotFoundException One or both currencies not found.
      */
     public function saveRate(CurrencyRateDTO $rate): void;
 
@@ -135,6 +137,21 @@ interface CurrencyRepositoryInterface
      * @param string $code The currency code to delete.
      * @return void
      * @throws CurrencyRateNotFoundException If no currency with the given code is found.
+     * @throws InvalidArgumentException If it is a default currency
      */
     public function deleteCurrency(string $code): void;
+
+    /**
+     * Save multiple currency exchange rates in a single transaction.
+     *
+     * This method saves multiple rates atomically, ensuring that either all rates
+     * are saved successfully or none of them are saved if an error occurs.
+     *
+     * @param CurrencyRateDTO[] $rates An array of currency rate DTOs to be saved
+     * @return void
+     * @throws InvalidArgumentException When any rate is less than or equal to 0
+     * @throws CurrencyNotFoundException When any referenced currency is not found
+     * @throws \Throwable If the transaction fails for any reason
+     */
+    public function saveRates(array $rates): void;
 }
