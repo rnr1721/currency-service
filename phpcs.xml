@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<ruleset name="CurrencyService Coding Standard">
+    <description>CurrencyService Coding Standard</description>
+
+    <!-- Scan these files -->
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Show progress -->
+    <arg value="p"/>
+    <arg name="colors"/>
+
+    <!-- PSR-12 -->
+    <rule ref="PSR12"/>
+
+    <!-- Exclude some rules that conflict with php-cs-fixer -->
+    <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <exclude-pattern>*/tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Allow classes without namespace in tests -->
+    <rule ref="PSR1.Classes.ClassDeclaration">
+        <exclude-pattern>*/tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Line length -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="120"/>
+        </properties>
+    </rule>
+
+    <!-- Files must end with a newline -->
+    <rule ref="Generic.Files.EndFileNewline"/>
+
+    <!-- Indentation -->
+    <rule ref="Generic.WhiteSpace.ScopeIndent">
+        <properties>
+            <property name="indent" value="4"/>
+            <property name="tabIndent" value="false"/>
+        </properties>
+    </rule>
+</ruleset>

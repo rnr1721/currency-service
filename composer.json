@@ -1,0 +1,68 @@
+{
+    "name": "rnr1721/currency-service",
+    "description": "Laravel Currency Service with currency library, formatting and conversion",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "currency",
+        "exchange",
+        "conversion",
+        "money",
+        "formatting"
+    ],
+    "homepage": "https://github.com/rnr1721/currency-service",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Eugeny G",
+            "email": "rnr1721@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "laravel/framework": "^10.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "mockery/mockery": "^1.5",
+        "nunomaduro/larastan": "^2.9",
+        "orchestra/testbench": "^8.0",
+        "phpstan/phpstan": "^1.0",
+        "phpunit/phpunit": "^10.0",
+        "squizlabs/php_codesniffer": "^3.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "rnr1721\\CurrencyService\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "rnr1721\\CurrencyService\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "rnr1721\\CurrencyService\\CurrencyServiceProvider"
+            ],
+            "aliases": {
+                "Currency": "rnr1721\\CurrencyService\\Facades\\Currency"
+            }
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "check-style": "phpcs src tests",
+        "fix-style": "phpcbf src tests",
+        "analyse": "phpstan analyse src tests --level=8"
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
