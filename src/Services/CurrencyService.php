@@ -256,7 +256,7 @@ class CurrencyService implements CurrencyServiceInterface
         $rates = $this->provider->getRates($defaultCurrency->code);
         $timestamp = new \DateTime();
 
-        // Получаем все доступные валюты
+        // get all available currencies
         $availableCurrencies = array_map(
             fn ($curr) => $curr->code,
             $this->getAllCurrencies()
@@ -265,8 +265,8 @@ class CurrencyService implements CurrencyServiceInterface
         foreach ($rates as $currencyCode => $rate) {
             if (in_array($currencyCode, $availableCurrencies, true)) {
                 $this->repository->saveRate(new CurrencyRateDTO(
-                    fromCurrency: $defaultCurrency->code,
-                    toCurrency: $currencyCode,
+                    fromCurrency: $currencyCode,
+                    toCurrency: $defaultCurrency->code,
                     rate: $rate,
                     updatedAt: $timestamp
                 ));

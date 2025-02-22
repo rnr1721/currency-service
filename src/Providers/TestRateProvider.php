@@ -11,28 +11,30 @@ use rnr1721\CurrencyService\Exceptions\CurrencyProviderException;
  * Test provider for currency rates
  *
  * This provider returns predefined exchange rates for testing purposes.
- * It uses common currency pairs with realistic but static rates.
+ * Returns rates in format: how much base currency for 1 unit of other currency
  */
 class TestRateProvider implements CurrencyRateProviderInterface
 {
     /**
-     * Predefined base rates against USD
+     * Predefined rates - how much USD for 1 unit of currency
      *
      * @var array<string, float>
      */
     private array $baseRates = [
-        'EUR' => 0.92,
-        'GBP' => 0.79,
-        'JPY' => 148.41,
-        'CHF' => 0.87,
-        'AUD' => 1.52,
-        'CAD' => 1.35,
-        'NZD' => 1.64,
-        'CNY' => 7.19,
+        'EUR' => 1.087,    // 1.087 USD for 1 EUR
+        'GBP' => 1.266,    // 1.266 USD for 1 GBP
+        'JPY' => 0.00674,  // 0.00674 USD for 1 JPY
+        'CHF' => 1.149,    // 1.149 USD for 1 CHF
+        'AUD' => 0.658,    // 0.658 USD for 1 AUD
+        'CAD' => 0.741,    // 0.741 USD for 1 CAD
+        'NZD' => 0.61,     // 0.61 USD for 1 NZD
+        'CNY' => 0.139,    // 0.139 USD for 1 CNY
     ];
 
     /**
      * Get exchange rates for the specified base currency
+     *
+     * Returns rates in format: how much base currency for 1 unit of other currency
      *
      * @param string $baseCurrency Base currency code
      * @return array<string, float> Exchange rates
@@ -40,41 +42,21 @@ class TestRateProvider implements CurrencyRateProviderInterface
      */
     public function getRates(string $baseCurrency): array
     {
-        // if USD is requested, return base rates
-        if ($baseCurrency === 'USD') {
-            return $this->baseRates;
-        }
-
-        // if requested currency is not supported, throw an exception
-        if (!isset($this->baseRates[$baseCurrency])) {
+        // We only support USD as base currency
+        if ($baseCurrency !== 'USD') {
             throw new CurrencyProviderException(
                 "Currency {$baseCurrency} is not supported by TestRateProvider"
             );
         }
 
-        $rates = [];
-        $baseRate = $this->baseRates[$baseCurrency];
-
-        // USD is always added
-        $rates['USD'] = 1 / $baseRate;
-
-        // Convert other currencies through USD
-        foreach ($this->baseRates as $currency => $rate) {
-            if ($currency !== $baseCurrency) {
-                $rates[$currency] = $rate / $baseRate;
-            }
-        }
-
-        return $rates;
+        return $this->baseRates;
     }
 
     /**
      * Add a test rate
      *
-     * Allows adding custom rates for testing specific scenarios
-     *
      * @param string $currency Currency code to add
-     * @param float $rateToUSD Exchange rate to USD
+     * @param float $rateToUSD How much USD for 1 unit of currency
      */
     public function addRate(string $currency, float $rateToUSD): void
     {
@@ -87,14 +69,14 @@ class TestRateProvider implements CurrencyRateProviderInterface
     public function reset(): void
     {
         $this->baseRates = [
-            'EUR' => 0.92,
-            'GBP' => 0.79,
-            'JPY' => 148.41,
-            'CHF' => 0.87,
-            'AUD' => 1.52,
-            'CAD' => 1.35,
-            'NZD' => 1.64,
-            'CNY' => 7.19,
+            'EUR' => 1.087,
+            'GBP' => 1.266,
+            'JPY' => 0.00674,
+            'CHF' => 1.149,
+            'AUD' => 0.658,
+            'CAD' => 0.741,
+            'NZD' => 0.61,
+            'CNY' => 0.139,
         ];
     }
 }
