@@ -60,8 +60,9 @@ class CurrencyServiceProvider extends ServiceProvider
                 );
             }
 
-            // For other providers (including TestRateProvider)
-            return new $providerClass();
+            // For other providers - using Laravel's service container
+            // This allows constructor dependency injection for custom providers
+            return $app->make($providerClass);
         });
 
         // Register the main service
